@@ -1,4 +1,4 @@
-# Outbound Python Client
+# Outbound Python Library
 
 ## Setup
 
