@@ -16,6 +16,11 @@
         phone_number="5551234567",
         apns_tokens=["ios device token"],
         gcm_tokens=["android device token"],
+        attributes=dict(
+            some_custom_attriute="Loren Ipsum",
+        ),
+        on_error=on_error_callback_function,
+        on_success=on_success_callback_func,
     )
 
 ## Track Event
@@ -26,5 +31,10 @@
         "EVENT NAME",
         payload=dict(
             eventAttr="",
-        )
+        ),
+        attributes=dict(
+            some_custom_attriute="Loren Ipsum",
+        ),
+        on_error=on_error_callback_function,
+        on_success=on_success_callback_func,
     )

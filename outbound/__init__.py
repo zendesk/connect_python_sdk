@@ -10,14 +10,11 @@ __BASE_URL = "http://api.ob-dev.com:9001"
 
 this = sys.modules[__name__]
 
-class NoApiKeyException(Exception):
-    pass
-
-class InvalidUserIdException(Exception):
-    pass
-
-class InvalidEventException(Exception):
-    pass
+ERROR_INIT = 1
+ERROR_USER_ID = 2
+ERROR_EVENT_NAME = 3
+ERROR_CONNECTION = 4
+ERROR_UNKNOWN = 5
 
 def init(key):
     setattr(this, '__HEADERS', {
@@ -27,7 +24,8 @@ def init(key):
         'X-Outbound-Key': key,})
 
 def identify(user_id, first_name=None, last_name=None, email=None,
-            phone_number=None, apns_tokens=None, gcm_tokens=None, attributes=None):
+            phone_number=None, apns_tokens=None, gcm_tokens=None,
+            attributes=None, on_error=None, on_success=None):
     """ Identifying a user creates a record of your user in Outbound. Identify
     calls should be made prior to sending any events for a user.
 
@@ -50,13 +48,25 @@ def identify(user_id, first_name=None, last_name=None, email=None,
 
     :param dict attributes: An optional dictionary with any additional freeform
     attributes describing the user.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
     """
 
+    on_error = on_error or __on_error
+    on_success = on_success or __on_success
+
     if not hasattr(this, '__HEADERS'):
-        raise NoApiKeyException()
+        on_error(ERROR_INIT, __error_message(ERROR_INIT))
+        return
 
     if not isinstance(user_id, (basestring, Number)):
-        raise InvalidUserIdException()
+        on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
+        return
 
     data = __user(
         first_name,
@@ -68,14 +78,22 @@ def identify(user_id, first_name=None, last_name=None, email=None,
         attributes,)
     data['user_id'] = user_id
 
-    requests.post(
-        "%s/identify" % __BASE_URL,
-        data=json.dumps(data),
-        headers=getattr(this, '__HEADERS'),)
+    try:
+        resp = requests.post(
+            "%s/identify" % __BASE_URL,
+            data=json.dumps(data),
+            headers=getattr(this, '__HEADERS'),)
+
+        if resp.status_code >= 200 and resp.status_code < 400:
+            on_success()
+        else:
+            on_error(ERROR_UNKNOWN, resp.text)
+    except requests.exceptions.ConnectionError:
+        on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
 
 def track(user_id, event, first_name=None, last_name=None, email=None,
         phone_number=None, apns_tokens=None, gcm_tokens=None,
-        user_attributes=None, payload=None):
+        user_attributes=None, payload=None, on_error=None, on_success=None):
     """ For any event you want to track, when a user triggers that event you
     would call this function.
 
@@ -105,15 +123,27 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
     describe the event being track. Example: if the event were "added item to
     cart", you might include a payload attribute named "item" that is the name
     of the item added to the cart.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 1 parameter which will be the error message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
     """
 
+    on_error = on_error or __on_error
+    on_success = on_success or __on_success
+
     if not hasattr(this, '__HEADERS'):
-        raise NoApiKeyException('No API key detected. Call init() before calling track().')
+        on_error(ERROR_INIT, __error_message(ERROR_INIT))
+        return
 
     if not isinstance(user_id, (basestring, Number)):
-        raise InvalidUserIdException()
+        on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
+        return
     if not isinstance(event, basestring):
-        raise InvalidEventException()
+        on_error(ERROR_EVENT_NAME, __error_message(ERROR_EVENT_NAME))
+        return
 
     data = dict(user_id=user_id, event=event)
     user = __user(
@@ -135,10 +165,18 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
             sys.stderr.write('Invalid event payload given. Expected dictionary. ' +
                         'Got %s' % type(payload).__name__)
 
-    requests.post(
-        "%s/track" % __BASE_URL,
-        data=json.dumps(data),
-        headers=getattr(this, '__HEADERS'),)
+    try:
+        resp = requests.post(
+            "%s/track" % __BASE_URL,
+            data=json.dumps(data),
+            headers=getattr(this, '__HEADERS'),)
+
+        if resp.status_code >= 200 and resp.status_code < 400:
+            on_success()
+        else:
+            on_error(ERROR_UNKNOWN, resp.text)
+    except requests.exceptions.ConnectionError:
+        on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
 
 def __user(first_name, last_name, email, phone_number, apns_tokens,
         gcm_tokens, attributes):
@@ -178,3 +216,21 @@ def __user(first_name, last_name, email, phone_number, apns_tokens,
                         'Got %s' % type(attributes).__name__)
 
     return data
+
+def __error_message(code):
+    if code == ERROR_INIT:
+        return "init() must be called before identifying any users."
+    elif code == ERROR_USER_ID:
+        return "User ID must be a string or a number."
+    elif code == ERROR_EVENT_NAME:
+        return "Event name must be a string."
+    elif code == ERROR_CONNECTION:
+        return "Unable to connect to Outbound."
+    elif code == ERROR_UNKNOWN:
+        return "Unknown error occurred."
+
+def __on_error(code, err):
+    pass
+
+def __on_success():
+    pass
