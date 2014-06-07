@@ -93,7 +93,7 @@ def identify(user_id, first_name=None, last_name=None, email=None,
 
 def track(user_id, event, first_name=None, last_name=None, email=None,
         phone_number=None, apns_tokens=None, gcm_tokens=None,
-        user_attributes=None, payload=None, on_error=None, on_success=None):
+        user_attributes=None, properties=None, on_error=None, on_success=None):
     """ For any event you want to track, when a user triggers that event you
     would call this function.
 
@@ -119,9 +119,9 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
     :param dict user_attributes: An optional dictionary with any additional
     freeform attributes describing the user.
 
-    :param dict payload: An optional dictionary with any attributes that
+    :param dict properties: An optional dictionary with any properties that
     describe the event being track. Example: if the event were "added item to
-    cart", you might include a payload attribute named "item" that is the name
+    cart", you might include a properties named "item" that is the name
     of the item added to the cart.
 
     :param func on_error: An optional function to call in the event of an error.
@@ -157,13 +157,13 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
     if user:
         data['user'] = user
 
-    if payload:
-        if isinstance(payload, dict):
-            if len(payload) > 0:
-                data['payload'] = payload
+    if properties:
+        if isinstance(properties, dict):
+            if len(properties) > 0:
+                data['properties'] = properties
         else:
-            sys.stderr.write('Invalid event payload given. Expected dictionary. ' +
-                        'Got %s' % type(payload).__name__)
+            sys.stderr.write('Invalid event properties given. Expected dictionary. ' +
+                        'Got %s' % type(properties).__name__)
 
     try:
         resp = requests.post(

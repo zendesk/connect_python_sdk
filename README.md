@@ -29,7 +29,7 @@
     outbound.track(
         "USER_ID",
         "EVENT NAME",
-        payload=dict(
+        properties=dict(
             eventAttr="",
         ),
         attributes=dict(
