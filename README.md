@@ -32,9 +32,6 @@
         properties=dict(
             eventAttr="",
         ),
-        attributes=dict(
-            some_custom_attriute="Loren Ipsum",
-        ),
         on_error=on_error_callback_function,
         on_success=on_success_callback_func,
     )
