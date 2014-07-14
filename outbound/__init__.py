@@ -6,7 +6,7 @@ import requests
 
 import version
 
-__BASE_URL = "http://api.ob-dev.com:9001"
+__BASE_URL = "https://api.outbound.io/v2"
 
 this = sys.modules[__name__]
 
