@@ -1,5 +1,9 @@
 # Outbound Python Library
 
+## Installation
+
+    pip install outbound
+
 ## Setup
 
     import outbound
