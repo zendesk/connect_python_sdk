@@ -19,8 +19,7 @@ ERROR_UNKNOWN = 5
 def init(key):
     setattr(this, '__HEADERS', {
         'content-type': 'application/json',
-        'X-Outbound-Client': 'python',
-        'X-Outbound-Client-Version': version.VERSION,
+        'X-Outbound-Client': 'Python/{0}'.format(version.VERSION),
         'X-Outbound-Key': key,})
 
 def identify(user_id, first_name=None, last_name=None, email=None,
