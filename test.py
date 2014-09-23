@@ -29,5 +29,13 @@ class AnalyticsBasicTests(unittest.TestCase):
         outbound.track(None, "event", on_error=user_id_on_error)
         outbound.track(1, None, on_error=event_on_error)
 
+    def test_register_token(self):
+        def user_id_on_error(code, err):
+            self.assertEqual(outbound.ERROR_USER_ID, code, "Expected user ID error.")
+        def token_on_error(code, err):
+            self.assertEqual(outbound.ERROR_TOKEN, code, "Expected token error.")
+        outbound.register_token(outbound.APNS, [1,2], "token", on_error=user_id_on_error)
+        outbound.register_token(outbound.APNS, 1, None, on_error=token_on_error)
+
 if __name__ == '__main__':
     unittest.main()

@@ -15,12 +15,58 @@ ERROR_USER_ID = 2
 ERROR_EVENT_NAME = 3
 ERROR_CONNECTION = 4
 ERROR_UNKNOWN = 5
+ERROR_TOKEN = 6
+
+APNS = "apns"
+GCM = "gcm"
 
 def init(key):
     setattr(this, '__HEADERS', {
         'content-type': 'application/json',
         'X-Outbound-Client': 'Python/{0}'.format(version.VERSION),
         'X-Outbound-Key': key,})
+
+def revoke_token(platform, user_id, token, on_error=None, on_success=None):
+    """ Revoke a device token for a user.
+
+    :param str platform The platform which to revoke token on. One of either
+    Google Cloud Messaging (outbound.GCM) or Apple Push Notification Service
+    (outbound.APNS).
+
+    :param str | number user_id: the id you use to identify a user. this should
+    be static for the lifetime of a user.
+
+    :param str token: the token to revoke.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
+    """
+    __device_token(platform, False, user_id, token, on_error, on_success)
+
+def register_token(platform, user_id, token, on_error=None, on_success=None):
+    """ Register a device token for a user.
+
+    :param str platform The platform which to register token on. One of either
+    Google Cloud Messaging (outbound.GCM) or Apple Push Notification Service
+    (outbound.APNS).
+
+    :param str | number user_id: the id you use to identify a user. this should
+    be static for the lifetime of a user.
+
+    :param str token: the token to register.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
+    """
+    __device_token(platform, True, user_id, token, on_error, on_success)
 
 def identify(user_id, first_name=None, last_name=None, email=None,
             phone_number=None, apns_tokens=None, gcm_tokens=None,
@@ -177,6 +223,38 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
     except requests.exceptions.ConnectionError:
         on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
 
+def __device_token(platform, register, user_id, token, on_error=None, on_success=None):
+    on_error = on_error or __on_error
+    on_success = on_success or __on_success
+
+    if not hasattr(this, '__HEADERS'):
+        on_error(ERROR_INIT, __error_message(ERROR_INIT))
+        return
+
+    if not isinstance(user_id, (basestring, Number)):
+        on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
+        return
+
+    if not isinstance(token, basestring):
+        on_error(ERROR_TOKEN, __error_message(ERROR_TOKEN))
+        return
+
+    try:
+        resp = requests.post(
+            "%s/%s/%s" % __BASE_URL, platform, 'register' if register else 'revoke',
+            data=json.dumps(dict(
+                user_id=user_id,
+                token=token,
+            )),
+            headers=getattr(this, '__HEADERS'),)
+
+        if resp.status_code >= 200 and resp.status_code < 400:
+            on_success()
+        else:
+            on_error(ERROR_UNKNOWN, resp.text)
+    except requests.exceptions.ConnectionError:
+        on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
+
 def __user(first_name, last_name, email, phone_number, apns_tokens,
         gcm_tokens, attributes):
 
@@ -227,6 +305,8 @@ def __error_message(code):
         return "Unable to connect to Outbound."
     elif code == ERROR_UNKNOWN:
         return "Unknown error occurred."
+    elif code == ERROR_TOKEN:
+        return "Token must be a string."
 
 def __on_error(code, err):
     pass
