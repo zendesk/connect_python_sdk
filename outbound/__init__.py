@@ -26,17 +26,17 @@ def init(key):
         'X-Outbound-Client': 'Python/{0}'.format(version.VERSION),
         'X-Outbound-Key': key,})
 
-def revoke_token(platform, user_id, token, on_error=None, on_success=None):
-    """ Revoke a device token for a user.
+def disable_token(platform, user_id, token, on_error=None, on_success=None):
+    """ Disable a device token for a user.
 
-    :param str platform The platform which to revoke token on. One of either
+    :param str platform The platform which to disable token on. One of either
     Google Cloud Messaging (outbound.GCM) or Apple Push Notification Service
     (outbound.APNS).
 
     :param str | number user_id: the id you use to identify a user. this should
     be static for the lifetime of a user.
 
-    :param str token: the token to revoke.
+    :param str token: the token to disable.
 
     :param func on_error: An optional function to call in the event of an error.
     on_error callback should take 2 parameters: `code` and `error`. `code` will be
@@ -241,7 +241,7 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
 
     try:
         resp = requests.post(
-            "%s/%s/%s" % __BASE_URL, platform, 'register' if register else 'revoke',
+            "%s/%s/%s" % __BASE_URL, platform, 'register' if register else 'disable',
             data=json.dumps(dict(
                 user_id=user_id,
                 token=token,
