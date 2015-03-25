@@ -68,7 +68,8 @@ def register_token(platform, user_id, token, on_error=None, on_success=None):
     """
     __device_token(platform, True, user_id, token, on_error, on_success)
 
-def identify(user_id, first_name=None, last_name=None, email=None,
+def identify(user_id, previous_id=None, group_id=None, group_attribute=None,
+            first_name=None, last_name=None, email=None,
             phone_number=None, apns_tokens=None, gcm_tokens=None,
             attributes=None, on_error=None, on_success=None):
     """ Identifying a user creates a record of your user in Outbound. Identify
@@ -76,6 +77,14 @@ def identify(user_id, first_name=None, last_name=None, email=None,
 
     :param str | number user_id: the id you use to identify a user. this should
     be static for the lifetime of a user.
+
+    :param str | number previous_id: OPTIONAL the id you previously used to identify the user.
+
+    :param str | number group_id: OPTIONAL  the id that identifies a group of users the current user
+    belongs to.
+
+    :param dict group_attributes: OPTIONAL An optional dictionary of attributes that are shared
+    among the group this user belongs to.
 
     :param str first_name: OPTIONAL the user's first name.
 
@@ -256,9 +265,20 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
         on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
 
 def __user(first_name, last_name, email, phone_number, apns_tokens,
-        gcm_tokens, attributes):
+        gcm_tokens, attributes, previous_id, group_id, group_attributes):
 
     data = dict()
+    if previous_id:
+        data['previous_id'] = previous_id
+    if group_id:
+        data['group_id'] = group_id
+    if group_attributes:
+        if isinstance(group_attributes, dict):
+            if len(group_attributes) > 0:
+                data['group_attributes'] = group_attributes
+        else:
+            sys.stderr.write('Invalid group attributes given. Expected dictionary. ' +
+                        'Got %s' % type(group_attributes).__name__)
     if first_name:
         data['first_name'] = first_name
     if last_name:
