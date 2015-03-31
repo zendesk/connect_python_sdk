@@ -68,7 +68,7 @@ def register_token(platform, user_id, token, on_error=None, on_success=None):
     """
     __device_token(platform, True, user_id, token, on_error, on_success)
 
-def identify(user_id, previous_id=None, group_id=None, group_attribute=None,
+def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
             first_name=None, last_name=None, email=None,
             phone_number=None, apns_tokens=None, gcm_tokens=None,
             attributes=None, on_error=None, on_success=None):
@@ -129,7 +129,10 @@ def identify(user_id, previous_id=None, group_id=None, group_attribute=None,
         phone_number,
         apns_tokens,
         gcm_tokens,
-        attributes,)
+        attributes,
+        previous_id,
+        group_id,
+        group_attributes,)
     data['user_id'] = user_id
 
     try:
@@ -207,7 +210,8 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
         phone_number,
         apns_tokens,
         gcm_tokens,
-        user_attributes,)
+        user_attributes,
+        None, None, None)
     if user:
         data['user'] = user
 
