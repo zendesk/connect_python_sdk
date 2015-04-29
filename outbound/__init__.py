@@ -4,8 +4,9 @@ from numbers import Number
 import time
 
 import requests
+import six
 
-import version
+from . import version
 
 __BASE_URL = "https://api.outbound.io/v2"
 
@@ -119,7 +120,7 @@ def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
-    if not isinstance(user_id, (basestring, Number)):
+    if not isinstance(user_id, six.string_types + (Number,)):
         on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
         return
 
@@ -196,10 +197,10 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
-    if not isinstance(user_id, (basestring, Number)):
+    if not isinstance(user_id, six.string_types + (Number,)):
         on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
         return
-    if not isinstance(event, basestring):
+    if not isinstance(event, six.string_types):
         on_error(ERROR_EVENT_NAME, __error_message(ERROR_EVENT_NAME))
         return
 
@@ -250,11 +251,11 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
-    if not isinstance(user_id, (basestring, Number)):
+    if not isinstance(user_id, six.string_types + (Number,)):
         on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
         return
 
-    if not isinstance(token, basestring):
+    if not isinstance(token, six.string_types):
         on_error(ERROR_TOKEN, __error_message(ERROR_TOKEN))
         return
 
@@ -298,7 +299,7 @@ def __user(first_name, last_name, email, phone_number, apns_tokens,
     if phone_number:
         data['phone_number'] = phone_number
     if apns_tokens:
-        if isinstance(apns_tokens, basestring):
+        if isinstance(apns_tokens, six.string_types):
             apns_tokens = [apns_tokens]
         if isinstance(apns_tokens, (list, tuple)):
             data['apns'] = apns_tokens
@@ -306,7 +307,7 @@ def __user(first_name, last_name, email, phone_number, apns_tokens,
             sys.stderr.write('Invalid APNS tokens given. Expected string or ' +
                         'list of strings. Got %s' % type(apns_tokens).__name__)
     if gcm_tokens:
-        if isinstance(gcm_tokens, basestring):
+        if isinstance(gcm_tokens, six.string_types):
             gcm_tokens = [gcm_tokens]
         if isinstance(gcm_tokens, (list, tuple)):
             data['gcm'] = gcm_tokens
