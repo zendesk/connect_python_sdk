@@ -1,6 +1,7 @@
 import sys
 import json
 from numbers import Number
+import time
 
 import requests
 
@@ -73,7 +74,7 @@ def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
             phone_number=None, apns_tokens=None, gcm_tokens=None,
             attributes=None, on_error=None, on_success=None):
     """ Identifying a user creates a record of your user in Outbound. Identify
-    calls should be made prior to sending any events for a user.
+    calls should be made prior to sending any track events for a user.
 
     :param str | number user_id: the id you use to identify a user. this should
     be static for the lifetime of a user.
@@ -150,7 +151,7 @@ def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
 
 def track(user_id, event, first_name=None, last_name=None, email=None,
         phone_number=None, apns_tokens=None, gcm_tokens=None,
-        user_attributes=None, properties=None, on_error=None, on_success=None):
+        user_attributes=None, properties=None, on_error=None, on_success=None, timestamp=None):
     """ For any event you want to track, when a user triggers that event you
     would call this function.
 
@@ -222,6 +223,11 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
         else:
             sys.stderr.write('Invalid event properties given. Expected dictionary. ' +
                         'Got %s' % type(properties).__name__)
+
+    if timestamp:
+        data['timestamp'] = timestamp
+    else:
+        data['timestamp'] = int(time.time())
 
     try:
         resp = requests.post(
