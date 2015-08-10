@@ -9,8 +9,7 @@ import six
 from . import version
 
 __BASE_URL = "https://api.outbound.io/v2"
-
-this = sys.modules[__name__]
+__HEADERS = None
 
 ERROR_INIT = 1
 ERROR_USER_ID = 2
@@ -18,15 +17,41 @@ ERROR_EVENT_NAME = 3
 ERROR_CONNECTION = 4
 ERROR_UNKNOWN = 5
 ERROR_TOKEN = 6
+ERROR_CAMPAIGN_IDS = 7
 
 APNS = "apns"
 GCM = "gcm"
 
+def __is_init():
+    return __HEADERS != None
+
 def init(key):
-    setattr(this, '__HEADERS', {
+    global __HEADERS
+    __HEADERS = {
         'content-type': 'application/json',
         'X-Outbound-Client': 'Python/{0}'.format(version.VERSION),
-        'X-Outbound-Key': key,})
+        'X-Outbound-Key': key,
+    }
+
+def unsubscribe(user_id, from_all=False, campaign_ids=None, on_error=None, on_success=None):
+    __subscription(
+        user_id,
+        unsubscribe=True,
+        all_campaigns=from_all,
+        campaign_ids=campaign_ids,
+        on_error=on_error,
+        on_success=on_success,
+    )
+
+def subscribe(user_id, to_all=False, campaign_ids=None, on_error=None, on_success=None):
+    __subscription(
+        user_id,
+        unsubscribe=False,
+        all_campaigns=to_all,
+        campaign_ids=campaign_ids,
+        on_error=on_error,
+        on_success=on_success,
+    )
 
 def disable_token(platform, user_id, token, on_error=None, on_success=None):
     """ Disable a device token for a user.
@@ -116,7 +141,7 @@ def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
     on_error = on_error or __on_error
     on_success = on_success or __on_success
 
-    if not hasattr(this, '__HEADERS'):
+    if not __is_init():
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
@@ -141,7 +166,8 @@ def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
         resp = requests.post(
             "%s/identify" % __BASE_URL,
             data=json.dumps(data),
-            headers=getattr(this, '__HEADERS'),)
+            headers=__HEADERS,
+        )
 
         if resp.status_code >= 200 and resp.status_code < 400:
             on_success()
@@ -193,7 +219,7 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
     on_error = on_error or __on_error
     on_success = on_success or __on_success
 
-    if not hasattr(this, '__HEADERS'):
+    if not __is_init():
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
@@ -234,7 +260,47 @@ def track(user_id, event, first_name=None, last_name=None, email=None,
         resp = requests.post(
             "%s/track" % __BASE_URL,
             data=json.dumps(data),
-            headers=getattr(this, '__HEADERS'),)
+            headers=__HEADERS,
+        )
+
+        if resp.status_code >= 200 and resp.status_code < 400:
+            on_success()
+        else:
+            on_error(ERROR_UNKNOWN, resp.text)
+    except requests.exceptions.ConnectionError:
+        on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
+
+def __subscription(user_id, unsubscribe, all_campaigns=False, campaign_ids=None, on_error=None, on_success=None):
+    on_error = on_error or __on_error
+    on_success = on_success or __on_success
+
+    if not __is_init():
+        on_error(ERROR_INIT, __error_message(ERROR_INIT))
+        return
+
+    if not isinstance(user_id, six.string_types + (Number,)):
+        on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
+        return
+
+    if not all_campaigns and (not isinstance(campaign_ids, (list, tuple)) or len(campaign_ids) == 0):
+        on_error(ERROR_TOKEN, __error_message(ERROR_CAMPAIGN_IDS))
+        return
+
+    url = '/'.join([__BASE_URL, ('unsubscribe' if unsubscribe else 'subscribe'), ('all' if all_campaigns else 'campaigns')])
+    data = dict(
+        user_id=user_id,
+    )
+
+    if not all_campaigns:
+        data['campaign_ids'] = campaign_ids
+
+    try:
+        print __HEADERS
+        resp = requests.post(
+            url,
+            data=json.dumps(data),
+            headers=__HEADERS,
+        )
 
         if resp.status_code >= 200 and resp.status_code < 400:
             on_success()
@@ -247,7 +313,7 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
     on_error = on_error or __on_error
     on_success = on_success or __on_success
 
-    if not hasattr(this, '__HEADERS'):
+    if not __is_init():
         on_error(ERROR_INIT, __error_message(ERROR_INIT))
         return
 
@@ -266,7 +332,8 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
                 user_id=user_id,
                 token=token,
             )),
-            headers=getattr(this, '__HEADERS'),)
+            headers=__HEADERS,
+        )
 
         if resp.status_code >= 200 and resp.status_code < 400:
             on_success()
@@ -326,18 +393,15 @@ def __user(first_name, last_name, email, phone_number, apns_tokens,
     return data
 
 def __error_message(code):
-    if code == ERROR_INIT:
-        return "init() must be called before identifying any users."
-    elif code == ERROR_USER_ID:
-        return "User ID must be a string or a number."
-    elif code == ERROR_EVENT_NAME:
-        return "Event name must be a string."
-    elif code == ERROR_CONNECTION:
-        return "Unable to connect to Outbound."
-    elif code == ERROR_UNKNOWN:
-        return "Unknown error occurred."
-    elif code == ERROR_TOKEN:
-        return "Token must be a string."
+    return {
+        ERROR_INIT: "init() must be called before identifying any users.",
+        ERROR_USER_ID: "User ID must be a string or a number.",
+        ERROR_EVENT_NAME: "Event name must be a string.",
+        ERROR_CONNECTION: "Unable to connect to Outbound.",
+        ERROR_UNKNOWN: "Unknown error occurred.",
+        ERROR_TOKEN: "Token must be a string.",
+        ERROR_CAMPAIGN_IDS: "One or more campaigns must be specified.",
+    }.get(code, "Unknown error")
 
 def __on_error(code, err):
     pass
