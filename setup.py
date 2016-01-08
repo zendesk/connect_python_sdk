@@ -31,6 +31,7 @@ setup(
     license='MIT License',
     install_requires=[
         'requests',
+        'six',
     ],
     description='Outbound sends automated email, SMS, phone calls and push notifications based on the actions users take (or do not take) in your app.',
     long_description=long_description
