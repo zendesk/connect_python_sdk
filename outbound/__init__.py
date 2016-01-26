@@ -34,6 +34,23 @@ def init(key):
     }
 
 def unsubscribe(user_id, from_all=False, campaign_ids=None, on_error=None, on_success=None):
+    """ Unsubscribe a user from some or all campaigns.
+
+    :param str | number user_id: the id you use to identify a user. this should
+    be static for the lifetime of a user.
+
+    :param bool from_all True to unsubscribe from all campaigns. Take precedence over
+    campaigns IDs if both are given.
+
+    :param list of str campaign_ids List of campaign IDs to unsubscribe the user from.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
+    """
     __subscription(
         user_id,
         unsubscribe=True,
@@ -44,6 +61,23 @@ def unsubscribe(user_id, from_all=False, campaign_ids=None, on_error=None, on_su
     )
 
 def subscribe(user_id, to_all=False, campaign_ids=None, on_error=None, on_success=None):
+    """ Resubscribe a user to some or all campaigns.
+
+    :param str | number user_id: the id you use to identify a user. this should
+    be static for the lifetime of a user.
+
+    :param bool to_all True to reubscribe to all campaigns. Take precedence over
+    campaigns IDs if both are given.
+
+    :param list of str campaign_ids List of campaign IDs to resubscribe the user to.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
+    """
     __subscription(
         user_id,
         unsubscribe=False,
@@ -52,6 +86,25 @@ def subscribe(user_id, to_all=False, campaign_ids=None, on_error=None, on_succes
         on_error=on_error,
         on_success=on_success,
     )
+
+def disable_all_tokens(platform, user_id, on_error=None, on_success=None):
+    """ Disable ALL device tokens for the given user on the specified platform.
+
+    :param str platform The platform which to disable token on. One of either
+    Google Cloud Messaging (outbound.GCM) or Apple Push Notification Service
+    (outbound.APNS).
+
+    :param str | number user_id: the id you use to identify a user. this should
+    be static for the lifetime of a user.
+
+    :param func on_error: An optional function to call in the event of an error.
+    on_error callback should take 2 parameters: `code` and `error`. `code` will be
+    one of outbound.ERROR_XXXXXX. `error` will be the corresponding message.
+
+    :param func on_success: An optional function to call if/when the API call succeeds.
+    on_success callback takes no parameters.
+    """
+    __device_token(platform, False, user_id, all=True, on_error=on_error, on_success=on_success)
 
 def disable_token(platform, user_id, token, on_error=None, on_success=None):
     """ Disable a device token for a user.
@@ -72,7 +125,7 @@ def disable_token(platform, user_id, token, on_error=None, on_success=None):
     :param func on_success: An optional function to call if/when the API call succeeds.
     on_success callback takes no parameters.
     """
-    __device_token(platform, False, user_id, token, on_error, on_success)
+    __device_token(platform, False, user_id, token=token, on_error=on_error, on_success=on_success)
 
 def register_token(platform, user_id, token, on_error=None, on_success=None):
     """ Register a device token for a user.
@@ -93,7 +146,7 @@ def register_token(platform, user_id, token, on_error=None, on_success=None):
     :param func on_success: An optional function to call if/when the API call succeeds.
     on_success callback takes no parameters.
     """
-    __device_token(platform, True, user_id, token, on_error, on_success)
+    __device_token(platform, True, user_id, token=token, on_error=on_error, on_success=on_success)
 
 def identify(user_id, previous_id=None, group_id=None, group_attributes=None,
             first_name=None, last_name=None, email=None,
@@ -309,7 +362,7 @@ def __subscription(user_id, unsubscribe, all_campaigns=False, campaign_ids=None,
     except requests.exceptions.ConnectionError:
         on_error(ERROR_CONNECTION, __error_message(ERROR_CONNECTION))
 
-def __device_token(platform, register, user_id, token, on_error=None, on_success=None):
+def __device_token(platform, register, user_id, token='', all=False, on_error=None, on_success=None):
     on_error = on_error or __on_error
     on_success = on_success or __on_success
 
@@ -321,17 +374,22 @@ def __device_token(platform, register, user_id, token, on_error=None, on_success
         on_error(ERROR_USER_ID, __error_message(ERROR_USER_ID))
         return
 
-    if not isinstance(token, six.string_types):
+    if not all and not isinstance(token, six.string_types):
         on_error(ERROR_TOKEN, __error_message(ERROR_TOKEN))
         return
 
     try:
+        data = dict(
+            user_id=user_id,
+        )
+        if all:
+            data["all"] = True
+        else:
+            data["token"] = token
+
         resp = requests.post(
-            "%s/%s/%s" % __BASE_URL, platform, 'register' if register else 'disable',
-            data=json.dumps(dict(
-                user_id=user_id,
-                token=token,
-            )),
+            "%s/%s/%s" % (__BASE_URL, platform, 'register' if register else 'disable'),
+            data=json.dumps(data),
             headers=__HEADERS,
         )
 
