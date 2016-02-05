@@ -149,7 +149,7 @@ def register_token(platform, user_id, token, on_error=None, on_success=None):
     """
     __device_token(platform, True, user_id, token=token, on_error=on_error, on_success=on_success)
 
-def alias(user_id, previous_id, on_error=Non, on_success=None):
+def alias(user_id, previous_id, on_error=None, on_success=None):
     """ Alias one user id to another.
 
     :param str | number user_id: the id you use to identify a user. this will be the user's
