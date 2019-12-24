@@ -396,7 +396,7 @@ def __subscription(user_id, unsubscribe, all_campaigns=False, campaign_ids=None,
         data['campaign_ids'] = campaign_ids
 
     try:
-        print __HEADERS
+        print(__HEADERS)
         resp = requests.post(
             url,
             data=json.dumps(data),
